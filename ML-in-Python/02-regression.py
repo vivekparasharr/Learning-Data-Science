@@ -1,3 +1,18 @@
+
+# regression - predict continuous real value such as salary
+
+# linear datasets
+# simple linear - 1 iv/feature and 1 tv (dependent or target variable)/continuous real value
+# multiple  - several iv (independent variables)
+
+# non linear dataset - dataset with non linear correlations
+# polinomial 
+# svr 
+# decision tree
+# random forest
+
+##################################################################
+
 # Simple Linear Regression
 
 # Importing the libraries
@@ -6,7 +21,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 # Importing the dataset
-dataset = pd.read_csv('Salary_Data.csv')
+dataset = pd.read_csv('02_regression/Salary_Data.csv')
 X = dataset.iloc[:, :-1].values
 y = dataset.iloc[:, -1].values
 
@@ -37,3 +52,7 @@ plt.title('Salary vs Experience (Test set)')
 plt.xlabel('Years of Experience')
 plt.ylabel('Salary')
 plt.show()
+
+##################################################################
+
+
