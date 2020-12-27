@@ -1,56 +1,241 @@
 
-# Time series is a collection of data points that are collected at constant time intervals. It is a dynamic or time dependent problem with or without increasing or decreasing trend, seasonality. Time series modeling is a powerful method to describe and extract information from time-based data and help to make informed decisions about future outcomes.
+'''
+
+Time series is a collection of data points that are collected at constant time 
+intervals. It is a dynamic or time dependent problem with or without increasing 
+or decreasing trend, seasonality. Time series modeling is a powerful method to 
+describe and extract information from time-based data and help to make informed 
+decisions about future outcomes.
+
+Components of time series
+- Trend (increasing or decreasing with time)
+- Seasonality (outdoor temperature increases during summer months) 
+
+Difference between time series and regression
+- Time series is time dependent, so the basic assumption of linear regression that observations are independent does not hold
+'''
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import statsmodels as sm
+
+# load data
+train = pd.read_csv('/Users/vivekparashar/OneDrive/GitHub-OneDrive/Learning-Data-Science/Data/Train_SU63ISt.csv')
+test = pd.read_csv('/Users/vivekparashar/OneDrive/GitHub-OneDrive/Learning-Data-Science/Data/Test_0qrQsBZ.csv')
+
+# understand data structure
+train.info()
+train.columns
+train.dtypes
+train.shape
+
+for i in (train, test):
+    i.Datetime = pd.to_datetime(i.Datetime, format = '%d-%m-%Y %H:%M')
+
+for i in (train, test):
+    i['year'] = i.Datetime.dt.year
+    i['month'] = i.Datetime.dt.month
+    i['day'] = i.Datetime.dt.day
+    i['Hour'] = i.Datetime.dt.hour
+
+# create a column called weekend
+# we will use dt.dayofweek (this is 5 or 6 for weekend)
+def wkend (row):
+    if row.dayofweek == 5 or row.dayofweek ==6:
+        return 1
+    else:
+        return 0
+
+train['day_of_week'] = train['Datetime'].apply(wkend)
+train = train.set_index('Datetime')
+train.plot(y='Count')
+
+# Exploratory data analysis - lets test our hypothesis
+# traffic will increase as years pass by
+train.groupby('year').mean()['Count'].plot.bar()
+# traffic will be high from may-oct
+train.groupby('month').mean()['Count'].plot.bar()
+# traffic on weekends will be more
+train.groupby('day_of_week').mean()['Count'].plot.bar() # 0 is for weekdays and 1 for weekend
+# traffic during peak hours will be high
+train.groupby('Hour').mean()['Count'].plot.bar()
+
+# there is a lot of noise at hourly level
+# lets see if we can reduce the noise by aggregating at daily, weekly and monthly level
+fig, axes = plt.subplots(4,1)
+train.resample('H').mean()['Count'].plot(ax=axes[0])
+train.resample('D').mean()['Count'].plot(ax=axes[1])
+train.resample('W').mean()['Count'].plot(ax=axes[2])
+train.resample('M').mean()['Count'].plot(ax=axes[3])
+plt.show()
+
+# lets go with the daily timeseries
+train = train.resample('D').mean()
+
+# lets split train dataset into train and valid (for validation / this is not same as test)
+train2 = train.loc['2012-08-25':'2014-06-24']
+valid2 = train.loc['2014-06-25':'2014-09-25']
+
+train2.Count.plot()
+valid2.Count.plot()
+# Here the blue part represents the trianing data and the orange part represents the validation data
+
+# TIME SERIES FORECASTING TECHNIQUES
+# Naive approach - here we assume that the next expected point is same as the last observed point. So we can expect a straight horizontal line as the prediction
+dd = np.asarray(train2.Count)
+y_hat = valid2.copy()
+y_hat['naive'] = dd [ len(dd) - 1 ]
+plt.figure(figsize=(12,8))
+train2.Count.plot()
+valid2.Count.plot()
+y_hat.naive.plot()
+
+# use RMSE - root mean square error (this is standard deviaiton of the residuals) test
+from sklearn.metrics import mean_squared_error
+from math import sqrt
+rms = sqrt(mean_squared_error(valid2.Count, y_hat.naive))
+print(rms)
+# we can infer that naive method is not suitable for datasets with high variability
+
+# moving average - here the predictions are made based on the average of last few points instead of taking all the previously known values
+# lets try the rolling average for last 10, 20, 50 days
+# rolling average for last 10 days
+y_hat = valid2.copy()
+y_hat['moving_avg'] = train2['Count'].rolling(10)\
+    .mean().iloc[-1] # avg of last 10 observations
+plt.figure(figsize=(12,8))
+train2.Count.plot()
+valid2.Count.plot()
+y_hat.moving_avg.plot()
+
+# simple exponential smoothing - we assign larger weights to more recent observations 
+# the weights decrease exponentially as observations come from further in the past
+# the smallest weights are associated with the oldest observations
+# if we give entire weight to the last value then this technique becomes same as naive approach
+from statsmodels.tsa.api import ExponentialSmoothing, SimpleExpSmoothing, Holt
+y_hat = valid2.copy()
+y_hat['SES'] = SimpleExpSmoothing(np.array(train2.Count))\
+    .fit(smoothing_level=0.6, optimized=False)\
+    .forecast(len(valid2))
+plt.figure(figsize=(12,8))
+train2.Count.plot()
+valid2.Count.plot()
+y_hat.SES.plot()
+
+# Holt linear trend model
+# first lets decompose the time series into its four parts - 
+# observed (this is the original time series), trend, seasonal and 
+# residual (remainder after removing trend and seasonality from time series)
+import statsmodels.api as sm_api
+sm_api.tsa.seasonal_decompose(train2.Count).plot();
+result = sm.tsa.stattools.adfuller(train2.Count)
+# holt implementation
+# it is an extenstion of ses to allow forecasting of data with a trend
+# the forecasting function in this method is a function of level and trend
+y_hat = valid2.copy()
+y_hat['holt_linear'] = Holt(np.array(train2.Count))\
+    .fit(smoothing_level=0.3, smoothing_slope=0.1)\
+    .forecast(len(valid2))
+plt.figure(figsize=(12,8))
+train2.Count.plot()
+valid2.Count.plot()
+y_hat.holt_linear.plot()
+
+# Holt winters model - takes into account both trend and seasonality
+y_hat = valid2.copy()
+y_hat['holt_winter'] = ExponentialSmoothing(np.array(train2.Count)\
+    , seasonal_periods=7, trend='add', seasonal='add').fit()\
+    .forecast(len(valid2))
+plt.figure(figsize=(12,8))
+train2.Count.plot()
+valid2.Count.plot()
+y_hat.holt_winter.plot()
+
+# ARIMA - Auto Regression Integrated Moving Average
+# we need to make timeseries stationary for ARIMA
+# stationary time series - mean and variance of time series are not funciton of time, co-var of i'th and (i+m)'th terms are not function of time
+# so ARIMA forecast for a stationary time series is nothing but a linear equaiton
+#
+# parameters for ARIMA model: (p,d,q)
+# p: order of the autoregressive model (number of time lags)
+# d: degree of differencing (number of times the data has had past values subtracted)
+# q: order of moving average model
+#
+# we use dicky fuller test to test if the series is stationary
+# the intuition behind this test is that it determines how strongly a time series is defined by a trend
+# null hypothesis si that time series is not stationary (has some dependent structure)
+# alternate hypothesis (rejecting the null hypothesis) is that the time series is stationary
+
+
+# understanding data
+
+# hypothesis generation - list out all possible factors that can affect the outcome
+# do this without looking at the data to avoid bias
+# in this case we say 1. there will be an increase in traffic as years pass by
+# 2. traffic will be higher from may-oct due to tourists
+# 3. traffic on weekdays will be more than weekends
+
+
+
+
+##########################################################################
+######################### co2 emission case study ########################
+##########################################################################
 
 '''
 CO2 Emission Forecast with Python (Seasonal ARIMA)
 https://www.kaggle.com/berhag/co2-emission-forecast-with-python-seasonal-arima
 '''
 
-%matplotlib inline
-import numpy as np
-import pandas as pd
-import matplotlib.pylab
-import matplotlib.pyplot as plt
-from matplotlib.pylab import rcParams
-rcParams['figure.figsize'] = 20, 16
+##########################################################################
+############################# j&j case study #############################
+##########################################################################
 
-import numpy as np
-import matplotlib.pyplot as plt
-import pandas as pd
-import statsmodels.api as sm
-import itertools
-
-df = pd.read_csv('/Users/vivekparashar/OneDrive/GitHub-OneDrive/Learning-Data-Science/Data/MER_T12_06.csv')
+df = pd.read_csv('https://github.com/marcopeix/time-series-analysis/raw/master/data/jj.csv')
 df.info()
 
-df.YYYYMM = pd.to_datetime(df.YYYYMM, format='%Y%m', errors = 'coerce')
-df = df.set_index('YYYYMM')
+df.date = pd.to_datetime(df.date, format='%Y-%m-%d', errors = 'coerce')
+# df.data = pd.to_numeric(df.data, errors='coerce')
+# df.dropna(inplace = True)
+# df = df.set_index('date')
 
-df.Value = pd.to_numeric(df.Value, errors='coerce')
+# display a plot of the time series
+df.set_index('date').plot()
 
-df.dropna(inplace = True)
+# Clearly, the time series is not stationary, as its mean is not constant through time,
+# and we see an increasing variance in the data, a sign of heteroscedasticity.
+# To make sure, let’s plot the PACF and ACF
+sm.graphics.tsaplots.plot_acf(df.data);
+sm.graphics.tsaplots.plot_pacf(df.data);
 
+# no information can be deduced from those plots. 
+# You can further test for stationarity with the Augmented Dickey-Fuller test
+ad_fuller_result = sm.tsa.stattools.adfuller(df.data)
+print(f'ADF Statistic: {ad_fuller_result[0]}')
+print(f'p-value: {ad_fuller_result[1]}')
+# Since the p-value is large, we cannot reject the null hypothesis 
+# and must assume that the time series is non-stationary.
 
-Energy_sources = df.groupby('Description')
+# Now, let’s take the log difference in an effort to make it stationary:
+df.data = np.log(df.data).diff()
+df = df.drop(df.index[0])
+# Log Difference of Quarterly EPS for Johnson & Johnson
+df.plot(y='data')
 
-for a in Energy_sources:
-    print (a)
-fig, ax = plt.subplots()
-for desc, group in df.groupby('Description'):
-    group.plot(x = group.index, y='Value', label=desc,ax = ax, title='Carbon Emissions per Energy Source', fontsize = 20)
-    ax.set_xlabel('Time(Monthly)')
-    ax.set_ylabel('Carbon Emissions in MMT')
-    ax.xaxis.label.set_size(20)
-    ax.yaxis.label.set_size(20)
-    ax.legend(fontsize = 16)
+# we still see the seasonality in the plot above. 
+# Since we are dealing with quarterly data, our period is 4. 
+# Therefore, we will take the difference over a period of 4
+df.data = df.data.diff(4)
+df = df.drop([1, 2, 3, 4], axis=0).reset_index(drop=True)
+df.plot(y='data')
 
-fig, axes = plt.subplots(3,3, figsize = (30, 20))
-for (desc, group), ax in zip(Energy_sources, axes.flatten()):
-    group.plot(x = group.index, y='Value',ax = ax, title=desc, fontsize = 18)
-    ax.set_xlabel('Time(Monthly)')
-    ax.set_ylabel('Carbon Emissions in MMT')
-    ax.xaxis.label.set_size(18)
-    ax.yaxis.label.set_size(18)
+# let’s run the Augmented Dickey-Fuller test again to see if we have a stationary time series
+ad_fuller_result = sm.tsa.stattools.adfuller(df.data)
+print(f'ADF Statistic: {ad_fuller_result[0]}')
+print(f'p-value: {ad_fuller_result[1]}')
+# Indeed, the p-value is small enough for us to reject the null hypothesis, 
+# and we can consider that the time series is stationary.
 
 
 #############################################################################
