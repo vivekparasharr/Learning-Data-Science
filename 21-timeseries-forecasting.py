@@ -71,11 +71,11 @@ train.resample('M').mean()['Count'].plot(ax=axes[3])
 plt.show()
 
 # lets go with the daily timeseries
-train = train.resample('D').mean()
+train1 = train.resample('D').mean()
 
 # lets split train dataset into train and valid (for validation / this is not same as test)
-train2 = train.loc['2012-08-25':'2014-06-24']
-valid2 = train.loc['2014-06-25':'2014-09-25']
+train2 = train1.loc['2012-08-25':'2014-06-24']
+valid2 = train1.loc['2014-06-25':'2014-09-25']
 
 train2.Count.plot()
 valid2.Count.plot()
@@ -162,11 +162,145 @@ y_hat.holt_winter.plot()
 # d: degree of differencing (number of times the data has had past values subtracted)
 # q: order of moving average model
 #
+# First we check if the series is stationary, if not, then we make it stationary
 # we use dicky fuller test to test if the series is stationary
 # the intuition behind this test is that it determines how strongly a time series is defined by a trend
 # null hypothesis si that time series is not stationary (has some dependent structure)
 # alternate hypothesis (rejecting the null hypothesis) is that the time series is stationary
+from statsmodels.tsa.stattools import adfuller
+import matplotlib.pyplot as plt
+from matplotlib.pylab import rcParams
+rcParams['figure.figsize'] = 20,10
+#
+def test_stationary(timeseries):
+    # determining rolling statistics
+    rolmean = timeseries.rolling(24).mean() # 24 hours on each day
+    rolstd = timeseries.rolling(24).std() # 24 hours on each day
+    # plot rolling statistics
+    orig = plt.plot(timeseries, color='blue', label='Original')
+    mean = plt.plot(rolmean, color='red', label='Rolling Mean')
+    std = plt.plot(rolstd, color='blue', label='Rolling Std')
+    plt.legend(loc='best')
+    plt.title('Rolling Mean and Standard Deviation')
+    plt.show(block=False)
+    # perform dicky fuller test
+    print('Results of Dicky Fuller test')
+    dftest = adfuller(timeseries, autolag='AIC')
+    dfoutput = pd.Series(dftest[0:4], index=['Test Statistic',\
+        'p-value', '#Lags Used','Number of Observations Used'])
+    for key, value in dftest[4].items():
+        dfoutput['Critical Value (%s)'%key] = value
+    print(dfoutput)
+#
+test_stationary(train.Count) #train original is used here
+# as t-statistic is less than the critical value but we can see an increasing trend in data, we assume that the series is stationary
+# still we will try to make the data more stationary by removing trend and seasonality from data
+#
+# removing trend
+# we see increasing trend in data, so we can apply a transform like log, which penalizes higher values
+# we will take rolling average here to remove the trend. we will take window size of 24 as there are 24 hours in a day
+train_log = np.log(train2.Count)
+valid_log = np.log(valid2.Count)
+# moving_avg = pd.rolling_mean(train_log,24) # this is depricated
+moving_avg = train_log.rolling(24).mean()
+plt.plot(train_log)
+plt.plot(moving_avg, color='red')
+plt.show()
+# now we will remove thsi increasing trend to make out time series stationary
+train_log_moving_avg_diff = train_log - moving_avg
+# since we took the average of 24 values, rolling mean is not defined for the first 23 values. so lets drop those null values. 
+train_log_moving_avg_diff = train_log_moving_avg_diff.dropna()
+test_stationary(train_log_moving_avg_diff)
+# we can see that the test statistic is very small compared to critical value. So we can assume that the trend has been removed. 
+#
+# lets now stabalize the mean which is also a requirement for a stationary time series
+# differencing can help to make the timeseries stable and eliminate the trend
+train_log_diff = train_log - train_log.shift(1)
+test_stationary(train_log_diff.dropna())
+#
+# removing seasonality 
+# we will use seasonal decompose to decompose the time series into trend, seasonality and residuals
+from statsmodels.tsa. seasonal import seasonal_decompose
+decomposition = seasonal_decompose(pd.DataFrame(train_log).Count.values, freq=24)
+trend = decomposition.trend
+seasonal = decomposition.seasonal
+residual = decomposition.resid
+#
+plt.subplot(411)
+plt.plot(train_log, label='Original')
+plt.legend(loc='best')
+plt.subplot(412)
+plt.plot(trend, label='Trend')
+plt.legend(loc='best')
+plt.subplot(413)
+plt.plot(seasonal, label='Seasonality')
+plt.legend(loc='best')
+plt.subplot(414)
+plt.plot(residual, label='Residual')
+plt.legend(loc='best')
+plt.tight_layout()
+plt.show()
+#
+#
+# lets check if residulas are stationary using dicky fuller test
+train_log_decompose = pd.DataFrame(residual)
+train_log_decompose['date'] = train_log.index
+train_log_decompose.set_index('date', inplace=True)
+train_log_decompose.dropna(inplace=True)
+test_stationary(train_log_decompose[0])
+# we can see that the test statistic is very small compared to critical value. So we can assume that residuals are stationary
+#
+# now we will forecast using arima
+# first we need to find optimal values for p, d, q 
+# we will use ACF (auto correlation function) and PACF (partial auto correlation) graph for this
+from statsmodels.tsa.stattools import acf, pacf
+lag_acf = acf(train_log_diff.dropna(), nlags=25)
+lag_pacf = pacf(train_log_diff.dropna(), nlags=25, method = 'ols')
+# plot acf
+plt.plot(lag_acf)
+plt.axhline(y=0, linestyle='--', color='gray')
+plt.axhline(y=-1.96/np.sqrt(len(train_log_diff.dropna())), linestyle = '--', color='gray')
+plt.axhline(y=1.96/np.sqrt(len(train_log_diff.dropna())), linestyle = '--', color='gray')
+plt.title('Autocorrelation Function')
+plt.show()
+# plot pacf
+plt.plot(lag_pacf)
+plt.axhline(y=0, linestyle='--', color='gray')
+plt.axhline(y=-1.96/np.sqrt(len(train_log_diff.dropna())), linestyle = '--', color='gray')
+plt.axhline(y=1.96/np.sqrt(len(train_log_diff.dropna())), linestyle = '--', color='gray')
+plt.title('Partial Autocorrelation Function')
+plt.show()
+# p value is the lag value where the PACF chart crosses the upper confidence interval for the first time. it can be noticed that in this case p=1
+# q value is the lag value where the ACF chart crosses the upper confidence interval for the first time. it can be noticed that in this case p=1
+#
+# now we will make the AR and MA model separately and join them
+from statsmodels.tsa.arima_model import ARIMA
+model = ARIMA(train_log, order=(2,1,0)) # here the q value is 0 since this is just an AR model
+results_AR = model.fit(disp=-1)
+plt.plot(train_log_diff.dropna(), label='Original')
+plt.plot(results_AR.fittedvalues, color='red', label='Predicitons')
+plt.legend(loc='best')
+plt.show()
+#
+# lets plot the validation curve for AR model
+# we have to change the scale of the mdoel to original scale
+# first step would be to store the predicted results as a separate seires and observe it
+AR_predict = results_AR.predict(start='2014-06-25', end='2014-09-25')
+AR_predict = AR_predict.cumsum().shift().fillna(0)
+AR_predict1 = pd.Series(np.ones(valid2.shape[0])\
+    * np.log(valid2.Count)[0], index=valid2.index)
+AR_predict = AR_predict1.add(AR_predict, fill_value=0)
+AR_predict = np.exp(AR_predict1)
+plt.plot(valid2.Count, label='Valid')
+plt.plot(AR_predict, color='red', label='Predict')
+plt.legend(loc='best')
+plt.title('RMSE: %.4f'% (np.sqrt(np.dot(AR_predict, valid2.Count))/valid2.shape[0]))
+plt.show()
 
+
+
+
+<this is where i am>
 
 # understanding data
 
