@@ -25,7 +25,7 @@ plt.show()
 # Training the K-Means model on the dataset
 kmeans = KMeans(n_clusters = 5, init = 'k-means++', random_state = 42)
 y_kmeans = kmeans.fit_predict(X)
-
+y_kmeans.shape
 # Visualising the clusters
 plt.scatter(X[y_kmeans == 0, 0], X[y_kmeans == 0, 1], s = 100, c = 'red', label = 'Cluster 1')
 plt.scatter(X[y_kmeans == 1, 0], X[y_kmeans == 1, 1], s = 100, c = 'blue', label = 'Cluster 2')
