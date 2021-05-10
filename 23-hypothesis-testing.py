@@ -1,6 +1,6 @@
 
 
-
+hypothesis testing
 
 from scipy.stats.morestats import _calc_uniform_order_statistic_medians
 
