@@ -148,7 +148,7 @@ library(randomForest)
 set.seed(1234)
 regressor = randomForest(x = dataset[-2], y = dataset$Salary, ntree = 500)
 
-# Predicting
+# Predicting 
 y_pred = predict(regressor, newdata = dataset)
 
 # Predicting a new result with Random Forest Regression
