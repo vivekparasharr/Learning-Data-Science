@@ -1,4 +1,8 @@
 
+#########################################################
+##################### Preprocessing #####################
+#########################################################
+
 # Importing the libraries
 import numpy as np
 import matplotlib.pyplot as plt
@@ -61,7 +65,9 @@ Tree-based algorithms - scaling is NOT required
 - The tree splits each node in such a way that it increases the homogeneity of that node. This split is not affected by the other features in the dataset.
 '''
 
-# REGRESSION 
+#########################################################
+###################### REGRESSION #######################
+#########################################################
 
 # Simple Linear Regression
 
@@ -158,4 +164,269 @@ regressor.fit(X, y)
 
 # Predicting a new result
 regressor.predict([[6.5]])
+
+
+
+#########################################################
+#################### CLASSIFICATION #####################
+#########################################################
+
+
+# Logistic Regression
+
+# Importing the dataset
+dataset = pd.read_csv('data/03_Social_Network_Ads.csv')
+
+# Splitting the dataset into the Training set and Test set
+# Feature Scaling
+
+# Training the Logistic Regression model on the Training set
+from sklearn.linear_model import LogisticRegression
+classifier = LogisticRegression(random_state = 0)
+classifier.fit(X_train, y_train)
+
+# Predicting a new result
+classifier.predict(sc.transform([[30,87000]]))
+
+# Predicting the Test set results
+y_pred = classifier.predict(X_test)
+
+# Making the Confusion Matrix
+from sklearn.metrics import confusion_matrix, accuracy_score
+cm = confusion_matrix(y_test, y_pred)
+accuracy_score(y_test, y_pred)
+
+
+# K-Nearest Neighbors (K-NN)
+
+# Importing the dataset
+dataset = pd.read_csv('data/03_Social_Network_Ads.csv')
+
+# Splitting the dataset into the Training set and Test set
+# Feature Scaling
+
+# Training the K-NN model on the Training set
+from sklearn.neighbors import KNeighborsClassifier
+classifier = KNeighborsClassifier(n_neighbors = 5, metric = 'minkowski', p = 2)
+classifier.fit(X_train, y_train)
+
+# Predicting a new result
+print(classifier.predict(sc.transform([[30,87000]])))
+
+# Predicting the Test set results
+y_pred = classifier.predict(X_test)
+
+# Making the Confusion Matrix
+from sklearn.metrics import confusion_matrix, accuracy_score
+cm = confusion_matrix(y_test, y_pred)
+
+# Accuracy
+accuracy_score(y_test, y_pred)
+
+
+
+# Support Vector Machine (SVM)
+
+# Importing the dataset
+dataset = pd.read_csv('data/03_Social_Network_Ads.csv')
+X = dataset.iloc[:, :-1].values
+y = dataset.iloc[:, -1].values
+
+# Splitting the dataset into the Training set and Test set
+# Feature Scaling
+
+# Training the SVM model on the Training set
+from sklearn.svm import SVC
+classifier = SVC(kernel = 'linear', random_state = 0)
+classifier.fit(X_train, y_train)
+
+# Predicting a new result
+print(classifier.predict(sc.transform([[30,87000]])))
+
+# Predicting the Test set results
+y_pred = classifier.predict(X_test)
+
+# Making the Confusion Matrix
+from sklearn.metrics import confusion_matrix, accuracy_score
+cm = confusion_matrix(y_test, y_pred)
+accuracy_score(y_test, y_pred)
+
+
+
+
+# Kernel SVM
+
+# Importing the dataset
+dataset = pd.read_csv('data/03_Social_Network_Ads.csv')
+
+# Splitting the dataset into the Training set and Test set
+# Feature Scaling
+
+# Training the Kernel SVM model on the Training set
+from sklearn.svm import SVC
+classifier = SVC(kernel = 'rbf', random_state = 0)
+classifier.fit(X_train, y_train)
+
+# Predicting a new result
+print(classifier.predict(sc.transform([[30,87000]])))
+
+# Predicting the Test set results
+y_pred = classifier.predict(X_test)
+
+# Making the Confusion Matrix
+from sklearn.metrics import confusion_matrix, accuracy_score
+cm = confusion_matrix(y_test, y_pred)
+accuracy_score(y_test, y_pred)
+
+
+
+# Naive Bayes
+
+# Importing the dataset
+dataset = pd.read_csv('data/03_Social_Network_Ads.csv')
+
+# Splitting the dataset into the Training set and Test set
+# Feature Scaling
+
+# Training the Naive Bayes model on the Training set
+from sklearn.naive_bayes import GaussianNB
+classifier = GaussianNB()
+classifier.fit(X_train, y_train)
+
+# Predicting a new result
+print(classifier.predict(sc.transform([[30,87000]])))
+
+# Predicting the Test set results
+y_pred = classifier.predict(X_test)
+
+# Making the Confusion Matrix
+from sklearn.metrics import confusion_matrix, accuracy_score
+cm = confusion_matrix(y_test, y_pred)
+accuracy_score(y_test, y_pred)
+
+
+
+
+# Decision Tree Classification
+
+# Importing the dataset
+dataset = pd.read_csv('data/03_Social_Network_Ads.csv')
+
+# Splitting the dataset into the Training set and Test set
+# Feature Scaling
+
+# Training the Decision Tree Classification model on the Training set
+from sklearn.tree import DecisionTreeClassifier
+classifier = DecisionTreeClassifier(criterion = 'entropy', random_state = 0)
+classifier.fit(X_train, y_train)
+
+# Predicting a new result
+print(classifier.predict(sc.transform([[30,87000]])))
+
+# Predicting the Test set results
+y_pred = classifier.predict(X_test)
+
+# Making the Confusion Matrix
+from sklearn.metrics import confusion_matrix, accuracy_score
+cm = confusion_matrix(y_test, y_pred)
+accuracy_score(y_test, y_pred)
+
+
+
+
+
+# Random Forest Classification
+
+# Importing the dataset
+dataset = pd.read_csv('data/03_Social_Network_Ads.csv')
+
+# Splitting the dataset into the Training set and Test set
+# Feature Scaling
+
+# Training the Random Forest Classification model on the Training set
+from sklearn.ensemble import RandomForestClassifier
+classifier = RandomForestClassifier(n_estimators = 10, criterion = 'entropy', random_state = 0)
+classifier.fit(X_train, y_train)
+
+# Predicting a new result
+print(classifier.predict(sc.transform([[30,87000]])))
+
+# Predicting the Test set results
+y_pred = classifier.predict(X_test)
+
+# Making the Confusion Matrix
+from sklearn.metrics import confusion_matrix, accuracy_score
+cm = confusion_matrix(y_test, y_pred)
+accuracy_score(y_test, y_pred)
+
+
+
+
+#########################################################
+####################### CLUSTERING ######################
+#########################################################
+
+# K-Means Clustering
+
+# Importing the dataset
+dataset = pd.read_csv('data/04_Mall_Customers.csv')
+X = dataset.iloc[:, [3, 4]].values
+
+# Using the elbow method to find the optimal number of clusters
+from sklearn.cluster import KMeans
+wcss = []
+for i in range(1, 11):
+    kmeans = KMeans(n_clusters = i, init = 'k-means++', random_state = 42)
+    kmeans.fit(X)
+    wcss.append(kmeans.inertia_)
+plt.plot(range(1, 11), wcss)
+plt.title('The Elbow Method')
+plt.xlabel('Number of clusters')
+plt.ylabel('WCSS')
+plt.show()
+
+# Training the K-Means model on the dataset
+kmeans = KMeans(n_clusters = 5, init = 'k-means++', random_state = 42)
+y_kmeans = kmeans.fit_predict(X)
+y_kmeans.shape
+
+# Visualising the clusters
+for i, c_ in zip(range(0,5),['r','b','g','c','m']):
+    plt.scatter(X[y_kmeans == i, 0], X[y_kmeans == i, 1], s = 100, c = c_, label = 'Cluster '+str(i))
+plt.scatter(kmeans.cluster_centers_[:, 0], kmeans.cluster_centers_[:, 1], s = 300, c = 'yellow', label = 'Centroids')
+plt.title('Clusters of customers')
+plt.xlabel('Annual Income (k$)')
+plt.ylabel('Spending Score (1-100)')
+plt.legend()
+plt.show()
+
+
+
+
+# Importing the dataset
+dataset = pd.read_csv('data/04_Mall_Customers.csv')
+X = dataset.iloc[:, [3, 4]].values
+
+# Using the dendrogram to find the optimal number of clusters
+import scipy.cluster.hierarchy as sch
+dendrogram = sch.dendrogram(sch.linkage(X, method = 'ward'))
+plt.title('Dendrogram')
+plt.xlabel('Customers')
+plt.ylabel('Euclidean distances')
+plt.show()
+
+# Training the model
+from sklearn.cluster import AgglomerativeClustering
+hc = AgglomerativeClustering(n_clusters = 5, affinity = 'euclidean', linkage = 'ward')
+y_hc = hc.fit_predict(X)
+
+# Visualizing the clusters
+for i, c_ in zip(range(0,5),['r','b','g','c','m']):
+    plt.scatter(X[y_hc == i, 0], X[y_hc == i, 1], s = 100, c = c_, label = 'Cluster '+str(i))
+plt.title('Clusters of customers')
+plt.xlabel('Annual Income (k$)')
+plt.ylabel('Spending Score (1-100)')
+plt.legend()
+plt.show()
+
 
