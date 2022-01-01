@@ -402,10 +402,7 @@ plt.show()
 
 
 
-
-# Importing the dataset
-dataset = pd.read_csv('data/04_Mall_Customers.csv')
-X = dataset.iloc[:, [3, 4]].values
+# Hierarchical clustering
 
 # Using the dendrogram to find the optimal number of clusters
 import scipy.cluster.hierarchy as sch
@@ -428,5 +425,137 @@ plt.xlabel('Annual Income (k$)')
 plt.ylabel('Spending Score (1-100)')
 plt.legend()
 plt.show()
+
+
+
+
+#########################################################
+############## ASSOCIATION RULE LEARNING ################
+#########################################################
+
+# Apriori
+
+# Run the following command in the terminal to install the apyori package: pip install apyori
+# each row represents a transaction. in the columns we have the products that were purchased
+dataset = pd.read_csv('data/05_Market_Basket_Optimisation.csv', header = None)
+
+# converting dataset to a list (transactions) of lists (products purchased in transactions)
+# apriori algo expects data item strings in the list of list 
+transactions = []
+for i in range(0, 7501):
+  transactions.append([str(dataset.values[i,j]) for j in range(0, 20)])
+
+# Training the Apriori model on the dataset
+from apyori import apriori
+rules = apriori(transactions = transactions, min_support = 0.003, min_confidence = 0.2, min_lift = 3, min_length = 2, max_length = 2)
+
+# Visualising the results
+
+## Displaying the first results coming directly from the output of the apriori function
+results = list(rules)
+results
+
+## Putting the results well organised into a Pandas DataFrame
+def inspect(results):
+    lhs         = [tuple(result[2][0][0])[0] for result in results]
+    rhs         = [tuple(result[2][0][1])[0] for result in results]
+    supports    = [result[1] for result in results]
+    confidences = [result[2][0][2] for result in results]
+    lifts       = [result[2][0][3] for result in results]
+    return list(zip(lhs, rhs, supports, confidences, lifts))
+resultsinDataFrame = pd.DataFrame(inspect(results), columns = ['Left Hand Side', 'Right Hand Side', 'Support', 'Confidence', 'Lift'])
+
+## Displaying the results non sorted
+resultsinDataFrame
+
+## Displaying the results sorted by descending lifts
+resultsinDataFrame.nlargest(n = 10, columns = 'Lift')
+
+
+
+# Eclat
+
+# Run the following command in the terminal to install the apyori package: pip install apyori
+# Data Preprocessing
+dataset = pd.read_csv('data/05_Market_Basket_Optimisation.csv', header = None)
+transactions = []
+for i in range(0, 7501):
+  transactions.append([str(dataset.values[i,j]) for j in range(0, 20)])
+
+# Training the Eclat model on the dataset
+from apyori import apriori
+rules = apriori(transactions = transactions, min_support = 0.003, min_confidence = 0.2, min_lift = 3, min_length = 2, max_length = 2)
+
+# Visualising the results
+
+## Displaying the first results coming directly from the output of the apriori function
+results = list(rules)
+results
+
+## Putting the results well organised into a Pandas DataFrame
+def inspect(results):
+    lhs         = [tuple(result[2][0][0])[0] for result in results]
+    rhs         = [tuple(result[2][0][1])[0] for result in results]
+    supports    = [result[1] for result in results]
+    return list(zip(lhs, rhs, supports))
+resultsinDataFrame = pd.DataFrame(inspect(results), columns = ['Product 1', 'Product 2', 'Support'])
+
+## Displaying the results sorted by descending supports
+resultsinDataFrame.nlargest(n = 10, columns = 'Support')
+
+
+
+
+
+
+#########################################################
+############## reinforcement LEARNING ################
+#########################################################
+
+
+# Upper Confidence Bound (UCB)
+
+# Importing the libraries
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+
+# Importing the dataset
+dataset = pd.read_csv('data/06_Ads_CTR_Optimisation.csv')
+
+# Implementing UCB
+import math
+N = 10000
+d = 10
+ads_selected = []
+numbers_of_selections = [0] * d
+sums_of_rewards = [0] * d
+total_reward = 0
+for n in range(0, N):
+    ad = 0
+    max_upper_bound = 0
+    for i in range(0, d):
+        if (numbers_of_selections[i] > 0):
+            average_reward = sums_of_rewards[i] / numbers_of_selections[i]
+            delta_i = math.sqrt(3/2 * math.log(n + 1) / numbers_of_selections[i])
+            upper_bound = average_reward + delta_i
+        else:
+            upper_bound = 1e400
+        if upper_bound > max_upper_bound:
+            max_upper_bound = upper_bound
+            ad = i
+    ads_selected.append(ad)
+    numbers_of_selections[ad] = numbers_of_selections[ad] + 1
+    reward = dataset.values[n, ad]
+    sums_of_rewards[ad] = sums_of_rewards[ad] + reward
+    total_reward = total_reward + reward
+
+# Visualising the results
+plt.hist(ads_selected)
+plt.title('Histogram of ads selections')
+plt.xlabel('Ads')
+plt.ylabel('Number of times each ad was selected')
+plt.show()
+
 
 
