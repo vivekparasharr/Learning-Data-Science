@@ -362,6 +362,43 @@ accuracy_score(y_test, y_pred)
 
 
 
+
+
+# XGBoost
+# can be used for both classification and regression
+
+# Importing the libraries
+# Importing the dataset
+dataset = pd.read_csv('data/10_Data.csv')
+X = dataset.iloc[:, :-1].values
+y = dataset.iloc[:, -1].values
+
+# Splitting the dataset into the Training set and Test set
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 0)
+
+# Training XGBoost on the Training set
+from xgboost import XGBClassifier
+classifier = XGBClassifier()
+classifier.fit(X_train, y_train)
+
+# Making the Confusion Matrix
+from sklearn.metrics import confusion_matrix, accuracy_score
+y_pred = classifier.predict(X_test)
+cm = confusion_matrix(y_test, y_pred)
+print(cm)
+accuracy_score(y_test, y_pred)
+
+# Applying k-Fold Cross Validation
+from sklearn.model_selection import cross_val_score
+accuracies = cross_val_score(estimator = classifier, X = X_train, y = y_train, cv = 10)
+print("Accuracy: {:.2f} %".format(accuracies.mean()*100))
+print("Standard Deviation: {:.2f} %".format(accuracies.std()*100))
+
+
+
+
+
 #########################################################
 ####################### CLUSTERING ######################
 #########################################################
@@ -798,6 +835,37 @@ plt.legend()
 plt.show()
 
 
+
+
+
+
+# Grid Search
+
+# Importing the libraries
+# Importing the dataset
+# Splitting the dataset into the Training set and Test set
+# Feature Scaling
+# Training the Kernel SVM model on the Training set
+# Making the Confusion Matrix
+# Applying k-Fold Cross Validation
+
+# Applying Grid Search to find the best model and the best parameters
+from sklearn.model_selection import GridSearchCV
+parameters = [{'C': [0.25, 0.5, 0.75, 1], 'kernel': ['linear']},
+              {'C': [0.25, 0.5, 0.75, 1], 'kernel': ['rbf'], 'gamma': [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]}]
+grid_search = GridSearchCV(estimator = classifier,
+                           param_grid = parameters,
+                           scoring = 'accuracy',
+                           cv = 10,
+                           n_jobs = -1)
+grid_search.fit(X_train, y_train)
+best_accuracy = grid_search.best_score_
+best_parameters = grid_search.best_params_
+print("Best Accuracy: {:.2f} %".format(best_accuracy*100))
+print("Best Parameters:", best_parameters)
+
+# Visualising the Training set results
+# Visualising the Test set results
 
 
 
