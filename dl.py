@@ -284,7 +284,7 @@ if result[0][0] == 1:
 else:
     prediction = 'cat'
 print(prediction)
-
+  
 
 
 
