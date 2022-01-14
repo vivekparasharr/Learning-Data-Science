@@ -287,5 +287,3 @@ print(prediction)
    
 
 
-
-
