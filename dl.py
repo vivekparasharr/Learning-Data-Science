@@ -215,7 +215,7 @@ y_pred = (y_pred > 0.5)
 print(np.concatenate((y_pred.reshape(len(y_pred),1), y_test.reshape(len(y_test),1)),1))
 
 # Making the Confusion Matrix
-from sklearn.metrics import confusion_matrix, accuracy_score
+from sklearn.metrics import confusion_matrix, accuracy_score, plot_confusion_matrix
 cm = confusion_matrix(y_test, y_pred)
 print(cm)
 accuracy_score(y_test, y_pred)
@@ -285,5 +285,11 @@ if result[0][0] == 1:
 else:
     prediction = 'cat'
 print(prediction)
-   
+
+
+
+
+
+
+
 
