@@ -3,8 +3,11 @@
 ##################### Preprocessing #####################
 #########################################################
 
+# getwd()
+# setwd("/Learning-Data-Science/")
+
 # Importing the dataset
-dataset = read.csv('02_salary_data.csv')
+dataset = read.csv('Learning-Data-Science/02_Salary_Data.csv')
 
 # Splitting the dataset into the Training set and Test set
 # install.packages('caTools')
